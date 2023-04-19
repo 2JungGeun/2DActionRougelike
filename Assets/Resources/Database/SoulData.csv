@@ -1,0 +1,2 @@
+﻿Name,HP,Damage,range,isUseDash,availableJumpCount
+Knight,100,100,2,TRUE,2
