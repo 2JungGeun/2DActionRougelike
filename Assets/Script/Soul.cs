@@ -7,6 +7,7 @@ using System;
 [Serializable]
 public class SoulData
 {
+    public int id;
     public string name;
     public int hp;
     public int damage;
@@ -16,8 +17,9 @@ public class SoulData
 
     public SoulData() { }
 
-    public SoulData(string name, string hp, string damage, string range, string isUseDash, string availableJumpCount)
+    public SoulData(string id, string name, string hp, string damage, string range, string isUseDash, string availableJumpCount)
     {
+        Int32.TryParse(id, out this.id);
         this.name = name;
         Int32.TryParse(hp, out this.hp);
         Int32.TryParse(damage, out this.damage);
@@ -29,6 +31,7 @@ public class SoulData
     public SoulData Deepcopy()
     {
         SoulData data = new SoulData();
+        data.id = this.id;
         data.name = this.name;
         data.hp = this.hp;
         data.damage = this.damage;
@@ -39,92 +42,130 @@ public class SoulData
     }
 }
 
-public enum SoulState
+public class MovementData
 {
-    IDLE,
-    WALK,
-    JUMPING,
-    FALLING,
-    DASHING,
-    ATTACKING
-}
+    //walk
+    public float moveSpeed;
 
-public enum AttackState
-{
-    ATTACKABLE,
-    ATTACKIMPOSSIBLE
-}
+    //jump
+    public float jumpHeight;
+    public float jumpPower;
+    public int jumpCount;
 
-[Serializable]
-public class SoulStates
-{
-    public SoulState soulState;
-    public AttackState attackState;
-    public float moveDir;
-    public bool isOnGournd;
-    public bool isUseDash;
-    public int availableJumpCount;
-    public float attackCount;
-    public SoulStates(bool isUseDash, int availableJumpCount)
+    //dash
+    public float dashDistance;
+    public float dashTime;
+    public float lookAt;
+
+    //중력 변수
+    public float fallGravityScale;
+    public float generalGravityScale;
+
+    public MovementData()
     {
-        this.soulState = SoulState.IDLE;
-        this.attackState = AttackState.ATTACKABLE;
-        this.moveDir = 0.0f;
-        this.isOnGournd = true;
-        this.isUseDash = isUseDash;
-        this.availableJumpCount = availableJumpCount;
-        attackCount = 0.0f;
+        this.moveSpeed = 5.0f;
+        this.jumpHeight = 4.0f;
+        this.fallGravityScale = 6.0f;
+        this.generalGravityScale = 3.0f;
+        this.jumpPower = Mathf.Sqrt(jumpHeight * -2 * (Physics2D.gravity.y * generalGravityScale));
+        this.jumpCount = 0;
+        this.dashDistance = 20.0f;
+        this.dashTime = 0.25f;
     }
 }
 
+public class CooldownTime
+{
+    public float dashCooldownTime;
+    public bool dashCoolingdown;
+    public float skill1CooldownTime;
+    public float skill2CooldownTime;
 
-[Serializable]
-public class Soul {
+    public CooldownTime()
+    {
+        this.dashCooldownTime = 5.0f;
+        this.dashCoolingdown = true;
+        this.skill1CooldownTime = 6.0f;
+        this.skill2CooldownTime = 6.0f;
+    }
 
-    private SoulData data;
+    public void chageDash()
+    {
+        this.dashCoolingdown = true;
+    }
+}
+
+public abstract class Soul {
+
+    protected Rigidbody2D rigid;
+    public Rigidbody2D Rigid { get { return rigid; } set { rigid = value; } }
+    protected Transform transform;
+    public Transform mTransform { get { return transform; } set { transform = value; } }
+    protected SpriteRenderer sprite;
+    public SpriteRenderer Sprite { get { return sprite; } set { sprite = value; } }
+    protected Animator animetor;
+    public Animator Anime { get { return animetor; } set { animetor = value; } }
+    
+    protected SoulData data;
     public SoulData Data { get { return data; } }
 
-    private Movement movement;
-    public Movement Movement { get { return movement; } }
-    private Attack attack;
-    public Attack Attack { get { return attack; } }
-    private Animation animation;
-    public Animation Animation { get { return animation; } }
+    protected MovementData moveData = new MovementData();
+    public MovementData MoveData { get { return moveData; } set { moveData = value; } }
 
-    //상태
-    private SoulStates states;
-    public SoulStates States { get { return states; } set { states = value; } }
+    protected SoulState sstate;
 
+    protected CooldownTime cooldownTime = new CooldownTime();
+    public CooldownTime mCooldownTime { get { return cooldownTime; } set { cooldownTime = value; } }
+
+    protected bool isOnGround;
+    public bool IsOnGround { get { return isOnGround; } set { isOnGround = value; } }
+
+    protected int attackCount;
+    public int AttackCount { get { return attackCount; } set { attackCount = value; } }
+    public float combatAttackTerm = 1.5f;
+    public bool attacking = false;
     public Soul() { }
 
     public Soul(string name)
     {
         this.data = DataManager.Instance().SoulDataDic[name].Deepcopy();
-        string movementType = name + "Movement";
-        string attackType = name + "Attack";
-        string animetionType = name + "Animation";
-        this.movement = (Movement)System.Reflection.Assembly.GetExecutingAssembly().CreateInstance(movementType);
-        this.attack = (Attack)System.Reflection.Assembly.GetExecutingAssembly().CreateInstance(attackType);
-        this.animation = (Animation)System.Reflection.Assembly.GetExecutingAssembly().CreateInstance(animetionType);
-        this.states = new SoulStates(data.isUseDash, data.availableJumpCount);
+        Debug.Log("실행");
     }
 
-    public void Start(Rigidbody2D rigid, Transform transform, SpriteRenderer sprite, Animator anime)
+    public void Initialize(Rigidbody2D rigid, Transform transform, SpriteRenderer sprite, Animator anime)
     {
-        movement.Start(rigid, transform);
-        attack.Start(transform);
-        animation.Start(sprite, anime);
+        this.rigid = rigid;
+        this.transform = transform;
+        this.sprite = sprite;
+        this.animetor = anime;
+        isOnGround = false;
     }
 
-    public void Update()
-    {
-        animation.Update(states);
-    }
+    public abstract void Start(InputManager input);
 
-    public void FixedUpdate(InputManager input)
+    public abstract void Update(InputManager input);
+
+    public abstract void FixedUpdate(InputManager input);
+
+    public abstract void HandleInput(InputManager input);
+
+    public abstract void SwapingSoul(InputManager input);
+
+    protected void IsGround(Soul soul)
     {
-        Debug.Log(states.soulState);
-        attack.Update(input, states);
-        movement.Update(input, states);
+        RaycastHit2D hit1 = Physics2D.Raycast(soul.transform.position + new Vector3(-0.5f, 0.0f, 0.0f), Vector2.down, 0.1f, 64);
+        RaycastHit2D hit2 = Physics2D.Raycast(soul.transform.position + new Vector3(0.5f, 0.0f, 0.0f), Vector2.down, 0.1f, 64);
+        if (hit1.collider != null || hit2.collider != null)
+        {
+            if (soul.rigid.velocity.y == 0)
+            {
+                isOnGround = true;
+                soul.MoveData.jumpCount = 0;
+            }
+        }
+        else
+        {
+            isOnGround = false;
+        }
     }
 }

@@ -24,6 +24,9 @@ public class DataManager : MonoBehaviour
     private string soulDataPath = "Database/SoulData";
     private Dictionary<string, SoulData> soulDataDic = new Dictionary<string, SoulData>();
     public Dictionary<string, SoulData> SoulDataDic { get { return soulDataDic; } }
+    private List<string> soulList = new List<string>();
+    public List<string> SoulList { get { return soulList; } }
+
     private void Awake()
     {
         _instance = this;
@@ -48,8 +51,9 @@ public class DataManager : MonoBehaviour
         for(int i = 0; i <soulData.Count; i++)
         {
             soulDataDic.Add(soulData[i]["Name"].ToString(), 
-                new SoulData(soulData[i]["Name"].ToString(), soulData[i]["HP"].ToString(), soulData[i]["Damage"].ToString(),
+                new SoulData(soulData[i]["ID"].ToString(),soulData[i]["Name"].ToString(), soulData[i]["HP"].ToString(), soulData[i]["Damage"].ToString(),
                 soulData[i]["range"].ToString(), soulData[i]["isUseDash"].ToString(), soulData[i]["availableJumpCount"].ToString()));
+            soulList.Add(soulData[i]["Name"].ToString());
         }
         /*if (!File.Exists(soulDataPath))
             return;

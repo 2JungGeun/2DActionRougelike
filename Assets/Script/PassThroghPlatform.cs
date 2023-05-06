@@ -25,6 +25,7 @@ public class PassThroghPlatform : MonoBehaviour
         if (playerOnPlatform && Input.GetAxisRaw("Vertical") < 0 && Input.GetButtonDown("Jump"))
         {
             platform.colliderMask = (int)Layer.Monster;
+            this.gameObject.layer = 2;
             StartCoroutine(EnableCollider());
         }
     }
@@ -33,6 +34,7 @@ public class PassThroghPlatform : MonoBehaviour
     {
         yield return new WaitForSeconds(0.5f);
         platform.colliderMask = (int)Layer.Player + (int)Layer.Monster;
+        this.gameObject.layer = 6;
     }
 
     private void SetPlayerOnPlatform(bool value)

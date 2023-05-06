@@ -1,2 +1,5 @@
-﻿Name,HP,Damage,range,isUseDash,availableJumpCount
-Knight,100,100,2,TRUE,2
+﻿ID,Name,HP,Damage,range,isUseDash,availableJumpCount
+0,Knight,100,100,2,TRUE,2
+1,Masition,100,100,2,FALSE,1
+2,Warrior,100,100,2,TRUE,2
+3,Archer,100,100,2,FALSE,1
