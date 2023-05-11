@@ -10,22 +10,22 @@ public class Warrior : Soul
 
     public Warrior(string name) : base(name)
     {
-        sstate = new WarriorIdleState();
+        state = new WarriorIdleState();
     }
 
     public override void Start(InputManager input)
     {
         if (Mathf.Abs(input.moveDir) > 0)
-            sstate = new WarriorWalkState();
+            state = new WarriorWalkState();
         else
-            sstate = new WarriorIdleState();
-        sstate.start(this, input);
+            state = new WarriorIdleState();
+        state.start(this, input);
     }
 
     override public void Update(InputManager input)
     {
         moveData.lookAt = (sprite.flipX) ? -1 : 1;
-        sstate.update(this, input);
+        state.update(this, input);
         if (attackCount >= 1)
             combatAttackTerm -= Time.deltaTime;
         if (attackCount == 3)
@@ -49,23 +49,35 @@ public class Warrior : Soul
     override public void FixedUpdate(InputManager input)
     {
         IsGround(this);
-        sstate.fixedUpdate(this, input);
-    }
-
-    override public void HandleInput(InputManager input)
-    {
-        SoulState state = this.sstate.handleInput(this, input);
-        if (state != null)
-        {
-            this.sstate.end(this, input);
-            this.sstate = state;
-            this.sstate.start(this, input);
-        }
+        state.fixedUpdate(this, input);
     }
 
     public override void SwapingSoul(InputManager input)
     {
-        this.sstate.end(this, input);
-        this.sstate = new WarriorIdleState();
+        this.state.end(this, input);
+        this.state = new WarriorIdleState();
+    }
+
+    public override SoulState StateChanger(State innerState)
+    {
+        switch (innerState)
+        {
+            case State.IDLE:
+                return new WarriorIdleState();
+            case State.WALK:
+                return new WarriorWalkState();
+            case State.JUMP:
+                return new WarriorJumpState();
+            case State.FALL:
+                return new WarriorFallState();
+            case State.DASH:
+                return new WarriorDashState();
+            case State.BASEATTACK:
+                return new WarriorGroundBasicAttackState();
+            case State.SKILL:
+                return null;
+            default:
+                return null;
+        }
     }
 }

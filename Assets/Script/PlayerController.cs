@@ -47,6 +47,7 @@ public class PlayerController : MonoBehaviour
         if (currSoul == null)
             return;
         input.moveDir = Input.GetAxisRaw("Horizontal");
+
         if (!(input.isJumpKeyDown || input.isDownJumpKeyDown) && Input.GetButtonDown("Jump"))
         {
             if (!Input.GetKey(KeyCode.DownArrow))
@@ -57,19 +58,20 @@ public class PlayerController : MonoBehaviour
             {
                 input.isDownJumpKeyDown = true;
             }
-        };
-        if (Input.GetKeyDown(KeyCode.C) && currSoul.mCooldownTime.dashCoolingdown)
+        }
+        else if (Input.GetKeyDown(KeyCode.C) && currSoul.mCooldownTime.dashCoolingdown && currSoul.Data.isUseDash)
         {
             input.isDashKeyDown = true;
         }
-        if (Input.GetKeyDown(KeyCode.Z))
+        else if (Input.GetKeyDown(KeyCode.Z))
         {
             input.isAttackKeyDown = true;
         }
-        if (Input.GetKeyDown(KeyCode.LeftShift))
+        else if (Input.GetKeyDown(KeyCode.LeftShift))
         {
-            SwapSoul();
-            currSoul.Start(input);
+            bool result = SwapSoul();
+            if(result)
+                currSoul.Start(input);
         }
         currSoul.HandleInput(input);
         currSoul.Update(input);
@@ -82,15 +84,15 @@ public class PlayerController : MonoBehaviour
 
     public void InitializeSoul()
     {
-        object[] args = new object[] { "Warrior" };
-        Type t = Type.GetType("Warrior");
+        object[] args = new object[] { "Knight" };
+        Type t = Type.GetType("Knight");
         ownSouls.Add((Soul)System.Activator.CreateInstance(t, args));
-        ownSouls[currIndex].Initialize(this.GetComponent<Rigidbody2D>(), this.transform, this.GetComponent<SpriteRenderer>(), this.GetComponent<Animator>());
+        ownSouls[currIndex].Initialize(this.GetComponent<Collider2D>(), this.GetComponent<Rigidbody2D>(), this.transform, this.GetComponent<SpriteRenderer>(), this.GetComponent<Animator>());
         currSoul = ownSouls[currIndex];
         this.GetComponent<Animator>().runtimeAnimatorController = Resources.Load("Animator/" + currSoul.Data.name + "_Anime") as RuntimeAnimatorController;
     }
 
-    public void SwapSoul()
+    public bool SwapSoul()
     {
         if (ownSouls.Count == 2)
         {
@@ -109,9 +111,13 @@ public class PlayerController : MonoBehaviour
             currSoul = ownSouls[currIndex];
             this.GetComponent<Animator>().runtimeAnimatorController = Resources.Load("Animator/" + currSoul.Data.name + "_Anime") as RuntimeAnimatorController;
             Debug.Log("소울 변경");
+            return true;
         }
         else
+        {
             Debug.Log("변경할 소울이 존재하지 않습니다.");
+            return false;
+        }
     }
 
     public void ModifySoul(string name, int selectedNum)
@@ -121,14 +127,14 @@ public class PlayerController : MonoBehaviour
             object[] args = new object[] { name };
             Type t = Type.GetType(name);
             ownSouls.Add((Soul)System.Activator.CreateInstance(t, args));
-            ownSouls[ownSouls.Count - 1].Initialize(this.GetComponent<Rigidbody2D>(), this.transform, this.GetComponent<SpriteRenderer>(), this.GetComponent<Animator>());
+            ownSouls[ownSouls.Count - 1].Initialize(this.GetComponent<Collider2D>(), this.GetComponent<Rigidbody2D>(), this.transform, this.GetComponent<SpriteRenderer>(), this.GetComponent<Animator>());
         }
         else
         {
             object[] args = new object[] { name };
             Type t = Type.GetType(name);
             ownSouls[selectedNum] = (Soul)System.Activator.CreateInstance(t, args);
-            ownSouls[selectedNum].Initialize(this.GetComponent<Rigidbody2D>(), this.transform, this.GetComponent<SpriteRenderer>(), this.GetComponent<Animator>());
+            ownSouls[selectedNum].Initialize(this.GetComponent<Collider2D>(), this.GetComponent<Rigidbody2D>(), this.transform, this.GetComponent<SpriteRenderer>(), this.GetComponent<Animator>());
         }
     }
 

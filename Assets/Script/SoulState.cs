@@ -2,10 +2,26 @@ using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
 
+//handelInput에서 조건은 같은데 리턴값이 달라 발생하는 중복코드를 줄이기 위해서 정의한 모든 상태에 대한 enum값 정의
+public enum State
+{
+    IDLE,
+    WALK,
+    JUMP,
+    FALL,
+    DASH,
+    BASEATTACK,
+    AIRATTACK,
+    SKILL,
+    NULL
+}
+
 abstract public class SoulState
 {
+    protected State innerState = State.NULL;
     virtual public void start(Soul soul, InputManager input) { }
     abstract public SoulState handleInput(Soul soul, InputManager input);
+    abstract public SoulState stateChanger(Soul soul);   //handleInput에서 변경한 State값을 받아 상태머신의 상태를 변경함.
     virtual public void update(Soul soul, InputManager input) { }
     virtual public void fixedUpdate(Soul soul, InputManager input) { }
     virtual public void end(Soul soul, InputManager input) { }
@@ -18,7 +34,31 @@ abstract public class IdleState : SoulState
         Debug.Log("IDlE");
         soul.Anime.Play("IDLE");
     }
-    abstract override public SoulState handleInput(Soul soul, InputManager input);
+    override public SoulState handleInput(Soul soul, InputManager input)
+    {
+        if (input.isJumpKeyDown)
+        {
+            innerState = State.JUMP;
+        }
+        else if (input.isDownJumpKeyDown || !soul.IsOnGround)
+        {
+            innerState = State.FALL;
+        }
+        else if (Mathf.Abs(input.moveDir) > 0)
+        {
+            innerState = State.WALK;
+        }
+        else if (soul.Data.isUseDash && soul.mCooldownTime.dashCoolingdown && input.isDashKeyDown)
+        {
+            innerState = State.DASH;
+        }
+        else if (input.isAttackKeyDown)
+        {
+            innerState = State.BASEATTACK;
+        }
+        return stateChanger(soul);
+    }
+    abstract override public SoulState stateChanger(Soul soul);
 }
 
 abstract public class WalkState : SoulState
@@ -29,7 +69,32 @@ abstract public class WalkState : SoulState
         soul.Anime.Play("WALK");
     }
 
-    abstract override public SoulState handleInput(Soul soul, InputManager input);
+    override public SoulState handleInput(Soul soul, InputManager input)
+    {
+        if (input.isJumpKeyDown)
+        {
+            innerState = State.JUMP;
+        }
+        else if (input.isDownJumpKeyDown || !soul.IsOnGround)
+        {
+            innerState = State.FALL;
+        }
+        else if (Mathf.Abs(input.moveDir) == 0)
+        {
+            innerState = State.IDLE;
+        }
+        else if (soul.Data.isUseDash && soul.mCooldownTime.dashCoolingdown && input.isDashKeyDown)
+        {
+            innerState = State.DASH;
+        }
+        else if (input.isAttackKeyDown)
+        {
+            innerState = State.BASEATTACK;
+        }
+        return stateChanger(soul);
+    }
+
+    public abstract override SoulState stateChanger(Soul soul);
 
     override public void update(Soul soul, InputManager input)
     {
@@ -45,9 +110,8 @@ abstract public class WalkState : SoulState
     }
     public override void fixedUpdate(Soul soul, InputManager input)
     {
-        soul.mTransform.position = Vector2.MoveTowards(soul.mTransform.position, soul.mTransform.position + new Vector3(input.moveDir * soul.MoveData.moveSpeed * Time.fixedDeltaTime, 0, 0), 0.8f);
+        soul.mTransform.position = Vector2.MoveTowards(soul.mTransform.position, soul.mTransform.position + new Vector3(input.moveDir * soul.Data.speed * Time.fixedDeltaTime, 0, 0), 0.8f);
     }
-    override public void end(Soul soul, InputManager input) { }
 }
 
 abstract public class JumpState : SoulState
@@ -57,27 +121,35 @@ abstract public class JumpState : SoulState
         Debug.Log("Jump");
         soul.Anime.Play("JUMP");
         soul.IsOnGround = false;
-        if (input.isJumpKeyDown)
-        {
-            Jump(soul);
-            input.isJumpKeyDown = false;
-        }
-        else if (input.isDownJumpKeyDown)
-        {
-            DownJump(soul);
-            input.isDownJumpKeyDown = false;
-        }
+        Jump(soul);
+        input.isJumpKeyDown = false;
+        soul.Rigid.gravityScale = soul.MoveData.generalGravityScale;
     }
 
-    abstract override public SoulState handleInput(Soul soul, InputManager input);
+    override public SoulState handleInput(Soul soul, InputManager input)
+    {
+        if(soul.Rigid.velocity.y < 0)
+        {
+            innerState = State.FALL;
+        }
+        else if (input.isJumpKeyDown && soul.MoveData.jumpCount < soul.Data.availableJumpCount)
+        {
+            innerState = State.JUMP;
+        }
+        else if (soul.Data.isUseDash && soul.mCooldownTime.dashCoolingdown && input.isDashKeyDown)
+        {
+            innerState = State.DASH;
+        }
+        else if (input.isAttackKeyDown)
+        {
+            innerState = State.BASEATTACK;
+        }
+        return stateChanger(soul);
+    }
+    public abstract override SoulState stateChanger(Soul soul);
 
     override public void fixedUpdate(Soul soul, InputManager input)
     {
-        if (input.isJumpKeyDown)
-        {
-            input.isJumpKeyDown = false;
-            Jump(soul);
-        }
         switch (input.moveDir)
         {
             case -1:
@@ -87,36 +159,66 @@ abstract public class JumpState : SoulState
                 soul.Sprite.flipX = false;
                 break;
         }
-        soul.mTransform.position = Vector2.MoveTowards(soul.mTransform.position, soul.mTransform.position + new Vector3(input.moveDir * soul.MoveData.moveSpeed * Time.fixedDeltaTime, 0, 0), 0.8f);
-
-        if (!soul.IsOnGround)
-        {
-            if (soul.Rigid.velocity.y < 0.0f)
-            {
-                soul.Rigid.gravityScale = soul.MoveData.fallGravityScale;
-            }
-            else
-            {
-                soul.Rigid.gravityScale = soul.MoveData.generalGravityScale;
-            }
-        }
+        soul.mTransform.position = Vector2.MoveTowards(soul.mTransform.position, soul.mTransform.position + new Vector3(input.moveDir * soul.Data.speed * Time.fixedDeltaTime, 0, 0), 0.8f);
     }
 
     override public void end(Soul soul, InputManager input) { }
 
-    private void DownJump(Soul soul)
-    {
-        soul.MoveData.jumpCount++;
-    }
-
     private void Jump(Soul soul)
     {
-        if (soul.MoveData.jumpCount < soul.Data.availableJumpCount || soul.IsOnGround)
+        soul.Rigid.velocity = new Vector2(soul.Rigid.velocity.x, 0.0f);
+        soul.Rigid.AddForce(Vector2.up * soul.MoveData.jumpPower, ForceMode2D.Impulse);
+        soul.MoveData.jumpCount++;
+    }
+}
+
+abstract public class FallState : SoulState
+{
+    public override void start(Soul soul, InputManager input)
+    {
+        Debug.Log("Fall");
+        soul.Anime.Play("FALL");
+        soul.IsOnGround = false;
+        soul.Rigid.gravityScale = soul.MoveData.fallGravityScale;
+        if (input.isDownJumpKeyDown)
         {
-            soul.Rigid.velocity = new Vector2(soul.Rigid.velocity.x, 0.0f);
-            soul.Rigid.AddForce(Vector2.up * soul.MoveData.jumpPower, ForceMode2D.Impulse);
             soul.MoveData.jumpCount++;
+            input.isDownJumpKeyDown = false;
         }
+    }
+    override public SoulState handleInput(Soul soul, InputManager input)
+    {
+        if (soul.Rigid.velocity.y == 0 && soul.IsOnGround)
+        {
+            if (Mathf.Abs(input.moveDir) > 0)
+                innerState = State.WALK;
+            else
+                innerState = State.IDLE;
+        }
+        else if (input.isJumpKeyDown && soul.MoveData.jumpCount < soul.Data.availableJumpCount)
+        {
+            innerState = State.JUMP;
+        }
+        else if (input.isAttackKeyDown)
+        {
+            innerState = State.BASEATTACK;
+        }
+        return stateChanger(soul);
+    }
+    public abstract override SoulState stateChanger(Soul soul);
+
+    public override void fixedUpdate(Soul soul, InputManager input)
+    {
+        switch (input.moveDir)
+        {
+            case -1:
+                soul.Sprite.flipX = true;
+                break;
+            case 1:
+                soul.Sprite.flipX = false;
+                break;
+        }
+        soul.mTransform.position = Vector2.MoveTowards(soul.mTransform.position, soul.mTransform.position + new Vector3(input.moveDir * soul.Data.speed * Time.fixedDeltaTime, 0, 0), 0.8f);
     }
 }
 
@@ -130,8 +232,18 @@ abstract public class DashState : SoulState
         soul.Anime.Play("DASH");
         soul.mCooldownTime.dashCoolingdown = false;
     }
-    abstract override public SoulState handleInput(Soul soul, InputManager input);
-
+    override public SoulState handleInput(Soul soul, InputManager input)
+    {
+        if (soul.MoveData.dashTime < dashTime)
+        {
+            if (soul.IsOnGround)
+                innerState = State.IDLE;
+            else
+                innerState = State.FALL;
+        }
+        return stateChanger(soul);
+    }
+    public abstract override SoulState stateChanger(Soul soul);
     override public void update(Soul soul, InputManager input) { }
     override public void fixedUpdate(Soul soul, InputManager input)
     {
@@ -145,7 +257,7 @@ abstract public class DashState : SoulState
     }
 }
 
-abstract public class BasicAttackState : SoulState
+abstract public class GroundBasicAttackState : SoulState
 {
     protected float[] attackDelay = { 0.45f, 0.33f, 0.33f };
     protected float time;
@@ -158,7 +270,19 @@ abstract public class BasicAttackState : SoulState
         time = 0.0f;
     }
 
-    abstract override public SoulState handleInput(Soul soul, InputManager input);
+    override public SoulState handleInput(Soul soul, InputManager input)
+    {
+        if (time >= attackDelay[soul.AttackCount])
+        {
+            if (soul.IsOnGround)
+                innerState = State.IDLE;
+            else
+                innerState = State.FALL;
+        }
+        return stateChanger(soul);
+    }
+
+    public abstract override SoulState stateChanger(Soul soul);
 
     override public void update(Soul soul, InputManager input)
     {
@@ -192,3 +316,33 @@ abstract public class BasicAttackState : SoulState
         return true;
     }
 }
+
+abstract public class AirBasicAttackState : SoulState
+{
+
+}
+
+abstract public class MeleeGroundBasicAttackState : GroundBasicAttackState
+{
+
+}
+
+abstract public class RangedGroundBasicAttackState : GroundBasicAttackState
+{
+
+}
+
+abstract public class MeleeAirBasicAttackState : AirBasicAttackState
+{
+
+}
+
+abstract public class RangedAirBasicAttackState : AirBasicAttackState
+{
+
+}
+
+
+
+
+

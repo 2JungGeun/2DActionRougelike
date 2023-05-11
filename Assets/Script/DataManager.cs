@@ -51,8 +51,8 @@ public class DataManager : MonoBehaviour
         for(int i = 0; i <soulData.Count; i++)
         {
             soulDataDic.Add(soulData[i]["Name"].ToString(), 
-                new SoulData(soulData[i]["ID"].ToString(),soulData[i]["Name"].ToString(), soulData[i]["HP"].ToString(), soulData[i]["Damage"].ToString(),
-                soulData[i]["range"].ToString(), soulData[i]["isUseDash"].ToString(), soulData[i]["availableJumpCount"].ToString()));
+                new SoulData(soulData[i]["ID"].ToString(),soulData[i]["Name"].ToString(), soulData[i]["Speed"].ToString(), soulData[i]["Damage"].ToString(),
+                soulData[i]["Range"].ToString(), soulData[i]["IsUseDash"].ToString(), soulData[i]["AvailableJumpCount"].ToString()));
             soulList.Add(soulData[i]["Name"].ToString());
         }
         /*if (!File.Exists(soulDataPath))

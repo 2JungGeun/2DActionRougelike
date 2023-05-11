@@ -5,10 +5,12 @@ using UnityEngine;
 public class Statue : MonoBehaviour
 {
     private int[] randomNum = new int[2];
-    private List<string> soulList = new List<string>();
+    private List<(string, bool)> soulList = new List<(string, bool)>();
+    public List<(string, bool)> SoulList { get { return soulList; } }
     private List<string> playerSoulList = new List<string>();
     private bool isConnectedPlayer = false;
     private bool isActivatedUI = false;
+    public bool IsActivatedUI { set { isActivatedUI = value; } }
     private bool isSelectedSoul = false;
     // Start is called before the first frame update
 
@@ -27,7 +29,7 @@ public class Statue : MonoBehaviour
             }
             if (!isActivatedUI)
             {
-                UIManager.GetUIManager().ShowStatueUI(soulList);
+                UIManager.GetUIManager().ShowStatueUI(this);
                 isActivatedUI = true;
             }
             else
@@ -55,7 +57,7 @@ public class Statue : MonoBehaviour
             }
             if (result)
                 continue;
-            soulList.Add(DataManager.Instance().SoulList[randomNum[i]]);
+            soulList.Add((DataManager.Instance().SoulList[randomNum[i]], true));
             i++;
         }
     }
@@ -69,6 +71,12 @@ public class Statue : MonoBehaviour
         }
         return false;
     }
+
+    public void SetSoulDisabled(int index)
+    {
+        soulList[index] = (soulList[index].Item1, false);
+    }
+
     private void OnTriggerEnter2D(Collider2D collision)
     {
         if(collision.CompareTag("Player"))
@@ -82,6 +90,7 @@ public class Statue : MonoBehaviour
             }
         }
     }
+
     private void OnTriggerExit2D(Collider2D collision)
     {
         if (collision.CompareTag("Player"))

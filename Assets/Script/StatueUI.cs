@@ -1,7 +1,7 @@
 using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
-
+using UnityEngine.UI;
 public class StatueUI : MonoBehaviour
 {
     [SerializeField]
@@ -16,13 +16,14 @@ public class StatueUI : MonoBehaviour
         for(int i = 0; i < UIManager.GetUIManager().SoulSeclectorUINum; i++)
         {
             soulSelectorUI.Add(Instantiate(UIprefab, parents) as GameObject);
+            soulSelectorUI[i].GetComponent<SoulSelectorUI>().Initailize(i);
         }
     }
-    public void Initialize(List<string> soulList)
+    public void Initialize(Statue statue)
     {
-        for(int i = 0; i< soulList.Count; i++)
+        for(int i = 0; i< statue.SoulList.Count; i++)
         {
-            soulSelectorUI[i].GetComponent<SoulSelectorUI>().Initialize(soulList[i]);
+            soulSelectorUI[i].GetComponent<SoulSelectorUI>().UIUpdate(statue);
         }
     }
 }

@@ -30,10 +30,10 @@ public class UIManager : MonoBehaviour
     {
         soulSelectorUINum = 2;
     }
-    public void ShowStatueUI(List<string> soulList)
+    public void ShowStatueUI(Statue statue)
     {
         statueUI.SetActive(true);
-        statueUI.GetComponent<StatueUI>().Initialize(soulList);
+        statueUI.GetComponent<StatueUI>().Initialize(statue);
     }
 
     public void HideStatueUi()

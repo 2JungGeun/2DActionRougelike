@@ -5,7 +5,6 @@ using System;
 
 public class Knight : Soul
 {
-    private KnightState state;
     private float coolTime = 0.0f;
     public Knight() { }
 
@@ -57,20 +56,32 @@ public class Knight : Soul
         state.fixedUpdate(this, input);
     }
 
-    override public void HandleInput(InputManager input)
-    {
-        KnightState state = this.state.handleInput(this, input);
-        if (state != null)
-        {
-            this.state.end(this, input);
-            this.state = state;
-            this.state.start(this, input);
-        }
-    }
-
     public override void SwapingSoul(InputManager input)
     {
         state.end(this, input);
         this.state = new KnightIdleState();
+    }
+
+    public override SoulState StateChanger(State innerState)
+    {
+        switch (innerState)
+        {
+            case State.IDLE:
+                return new KnightIdleState();
+            case State.WALK:
+                return new KnightWalkState();
+            case State.JUMP:
+                return new KnightJumpState();
+            case State.FALL:
+                return new KnightFallState();
+            case State.DASH:
+                return new KnightDashState();
+            case State.BASEATTACK:
+                return new KnightGroundBasicAttackState();
+            case State.SKILL:
+                return null;
+            default:
+                return null;
+        }
     }
 }
