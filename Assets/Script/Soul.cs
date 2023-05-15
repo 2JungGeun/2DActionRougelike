@@ -66,7 +66,7 @@ public class MovementData
         this.jumpPower = Mathf.Sqrt(jumpHeight * -2 * (Physics2D.gravity.y * generalGravityScale));
         this.jumpCount = 0;
         this.dashDistance = 20.0f;
-        this.dashTime = 0.25f;
+        this.dashTime = 0.3f;
     }
 }
 
@@ -102,9 +102,9 @@ public abstract class Soul {
     public Transform mTransform { get { return transform; } set { transform = value; } }
     protected SpriteRenderer sprite;
     public SpriteRenderer Sprite { get { return sprite; } set { sprite = value; } }
-    protected Animator animetor;
-    public Animator Anime { get { return animetor; } set { animetor = value; } }
-    
+    protected Animator animator;
+    public Animator Anime { get { return animator; } set { animator = value; } }
+
     //소울별로 로드되는 변수
     protected SoulData data;
     public SoulData Data { get { return data; } }
@@ -115,6 +115,9 @@ public abstract class Soul {
 
     //상태머신을 위한 변수
     protected SoulState state;
+    //soul Skill
+    protected Dictionary<KeyCode, Skill> skills = new Dictionary<KeyCode, Skill>();
+    public Dictionary<KeyCode, Skill> Skills { get { return skills; } }
 
     //Skill 쿨타임
     protected CooldownTime cooldownTime = new CooldownTime();
@@ -144,8 +147,8 @@ public abstract class Soul {
         this.rigid = rigid;
         this.transform = transform;
         this.sprite = sprite;
-        this.animetor = anime;
-        isOnGround = false;
+        this.animator = anime;
+        this.isOnGround = false;
     }
 
     public abstract void Start(InputManager input);
@@ -167,6 +170,13 @@ public abstract class Soul {
     }
 
     public abstract void SwapingSoul(InputManager input);
+
+    public void Hit(InputManager input)
+    {
+        this.state.end(this, input);
+        this.state = new HitState();
+        this.state.start(this, input);
+    }
 
     //SoulState를 상속받아 stateChanger를 오버라이드한 모든 클래스에서 중복되는 조건탐색이 있어 중복코드 방지용 함수
     public abstract SoulState StateChanger(State innerState);

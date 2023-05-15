@@ -21,7 +21,6 @@ abstract public class SoulState
     protected State innerState = State.NULL;
     virtual public void start(Soul soul, InputManager input) { }
     abstract public SoulState handleInput(Soul soul, InputManager input);
-    abstract public SoulState stateChanger(Soul soul);   //handleInput에서 변경한 State값을 받아 상태머신의 상태를 변경함.
     virtual public void update(Soul soul, InputManager input) { }
     virtual public void fixedUpdate(Soul soul, InputManager input) { }
     virtual public void end(Soul soul, InputManager input) { }
@@ -56,9 +55,13 @@ abstract public class IdleState : SoulState
         {
             innerState = State.BASEATTACK;
         }
-        return stateChanger(soul);
+        else if (input.isSkillKeyDown.Item1)
+        {
+            if (soul.Skills[input.isSkillKeyDown.Item2].CanUseSkill())
+                innerState = State.SKILL;
+        }
+        return soul.StateChanger(innerState);
     }
-    abstract override public SoulState stateChanger(Soul soul);
 }
 
 abstract public class WalkState : SoulState
@@ -91,10 +94,13 @@ abstract public class WalkState : SoulState
         {
             innerState = State.BASEATTACK;
         }
-        return stateChanger(soul);
+        else if (input.isSkillKeyDown.Item1)
+        {
+            if (soul.Skills[input.isSkillKeyDown.Item2].CanUseSkill())
+                innerState = State.SKILL;
+        }
+        return soul.StateChanger(innerState);
     }
-
-    public abstract override SoulState stateChanger(Soul soul);
 
     override public void update(Soul soul, InputManager input)
     {
@@ -128,7 +134,7 @@ abstract public class JumpState : SoulState
 
     override public SoulState handleInput(Soul soul, InputManager input)
     {
-        if(soul.Rigid.velocity.y < 0)
+        if (soul.Rigid.velocity.y < 0)
         {
             innerState = State.FALL;
         }
@@ -142,11 +148,15 @@ abstract public class JumpState : SoulState
         }
         else if (input.isAttackKeyDown)
         {
-            innerState = State.BASEATTACK;
+            innerState = State.AIRATTACK;
         }
-        return stateChanger(soul);
+        else if (input.isSkillKeyDown.Item1)
+        {
+            if (soul.Skills[input.isSkillKeyDown.Item2].CanUseSkill())
+                innerState = State.SKILL;
+        }
+        return soul.StateChanger(innerState);
     }
-    public abstract override SoulState stateChanger(Soul soul);
 
     override public void fixedUpdate(Soul soul, InputManager input)
     {
@@ -201,11 +211,15 @@ abstract public class FallState : SoulState
         }
         else if (input.isAttackKeyDown)
         {
-            innerState = State.BASEATTACK;
+            innerState = State.AIRATTACK;
         }
-        return stateChanger(soul);
+        else if (input.isSkillKeyDown.Item1)
+        {
+            if (soul.Skills[input.isSkillKeyDown.Item2].CanUseSkill())
+                innerState = State.SKILL;
+        }
+        return soul.StateChanger(innerState);
     }
-    public abstract override SoulState stateChanger(Soul soul);
 
     public override void fixedUpdate(Soul soul, InputManager input)
     {
@@ -231,6 +245,7 @@ abstract public class DashState : SoulState
         dashTime = 0;
         soul.Anime.Play("DASH");
         soul.mCooldownTime.dashCoolingdown = false;
+        soul.Rigid.AddForce(new Vector2(10.0f, 0.0f));
     }
     override public SoulState handleInput(Soul soul, InputManager input)
     {
@@ -241,16 +256,19 @@ abstract public class DashState : SoulState
             else
                 innerState = State.FALL;
         }
-        return stateChanger(soul);
+        return soul.StateChanger(innerState);
     }
-    public abstract override SoulState stateChanger(Soul soul);
-    override public void update(Soul soul, InputManager input) { }
-    override public void fixedUpdate(Soul soul, InputManager input)
+    override public void update(Soul soul, InputManager input)
     {
-        dashTime += Time.fixedDeltaTime;
-        soul.Rigid.velocity = new Vector2(soul.Rigid.velocity.x, 0.0f);
-        soul.mTransform.position = Vector2.MoveTowards(soul.mTransform.position, soul.mTransform.position + new Vector3(soul.MoveData.lookAt * soul.MoveData.dashDistance * Time.fixedDeltaTime, 0), 1.0f);
+        dashTime += Time.deltaTime;
     }
+
+    public override void fixedUpdate(Soul soul, InputManager input)
+    {
+        soul.Rigid.velocity = new Vector2(soul.Rigid.velocity.x, 0.0f);
+        soul.mTransform.position = Vector2.MoveTowards(soul.mTransform.position, soul.mTransform.position + new Vector3(soul.MoveData.lookAt * soul.MoveData.dashDistance * Time.fixedDeltaTime, 0, 0), 0.8f);
+    }
+
     override public void end(Soul soul, InputManager input)
     {
         input.isDashKeyDown = false;
@@ -262,6 +280,7 @@ abstract public class GroundBasicAttackState : SoulState
     protected float[] attackDelay = { 0.45f, 0.33f, 0.33f };
     protected float time;
     protected bool isAttack = false;
+
     override public void start(Soul soul, InputManager input)
     {
         Debug.Log("Attack" + soul.AttackCount);
@@ -279,22 +298,14 @@ abstract public class GroundBasicAttackState : SoulState
             else
                 innerState = State.FALL;
         }
-        return stateChanger(soul);
+        return soul.StateChanger(innerState);
     }
-
-    public abstract override SoulState stateChanger(Soul soul);
 
     override public void update(Soul soul, InputManager input)
     {
         time += Time.deltaTime;
     }
-    override public void fixedUpdate(Soul soul, InputManager input)
-    {
-        if (time >= (attackDelay[soul.AttackCount] * 0.5f) && !isAttack)
-        {
-            isAttack = createHitbox(soul, attackDelay[soul.AttackCount]);
-        }
-    }
+    abstract override public void fixedUpdate(Soul soul, InputManager input);
     override public void end(Soul soul, InputManager input)
     {
         soul.attacking = false;
@@ -302,8 +313,51 @@ abstract public class GroundBasicAttackState : SoulState
         soul.AttackCount++;
         input.isAttackKeyDown = false;
     }
+}
 
-    private bool createHitbox(Soul soul, float delay)
+abstract public class AirBasicAttackState : SoulState
+{
+    protected float delay = 0.42f;
+    protected float time = 0.0f;
+    protected bool isAttack = false;
+    public override void start(Soul soul, InputManager input)
+    {
+        Debug.Log("AirAttack");
+        soul.Anime.Play("AIRATTACK");
+    }
+
+    public override SoulState handleInput(Soul soul, InputManager input)
+    {
+        if (time >= delay)
+        {
+            if (soul.IsOnGround)
+                innerState = State.IDLE;
+            else
+                innerState = State.FALL;
+        }
+        return soul.StateChanger(innerState);
+    }
+
+    public override void update(Soul soul, InputManager input)
+    {
+        time += Time.deltaTime;
+    }
+
+    public override void fixedUpdate(Soul soul, InputManager input)
+    {
+        if (time >= (delay * 0.5f) && !isAttack)
+        {
+            isAttack = createHitbox(soul);
+        }
+    }
+
+    public override void end(Soul soul, InputManager input)
+    {
+        input.isAttackKeyDown = false;
+        isAttack = false;
+    }
+
+    private bool createHitbox(Soul soul)
     {
         RaycastHit2D[] hits = Physics2D.BoxCastAll(soul.mTransform.position + new Vector3(soul.MoveData.lookAt * 1.0f, 0.75f, 0), new Vector2(1.8f, 1.4f), 0, Vector2.up, 0, 128);
         if (hits != null)
@@ -317,19 +371,57 @@ abstract public class GroundBasicAttackState : SoulState
     }
 }
 
-abstract public class AirBasicAttackState : SoulState
-{
-
-}
-
 abstract public class MeleeGroundBasicAttackState : GroundBasicAttackState
 {
+    public override void start(Soul soul, InputManager input)
+    {
+        base.start(soul, input);
+    }
 
+    public override void fixedUpdate(Soul soul, InputManager input)
+    {
+        if (time >= (attackDelay[soul.AttackCount] * 0.5f) && !isAttack)
+        {
+            isAttack = createHitbox(soul);
+        }
+    }
+
+    private bool createHitbox(Soul soul)
+    {
+        RaycastHit2D[] hits = Physics2D.BoxCastAll(soul.mTransform.position + new Vector3(soul.MoveData.lookAt * 1.0f, 0.75f, 0), new Vector2(1.8f, 1.4f), 0, Vector2.up, 0, 128);
+        if (hits != null)
+        {
+            foreach (RaycastHit2D hit in hits)
+            {
+                hit.collider.gameObject.SendMessage("Hit", null, SendMessageOptions.RequireReceiver);
+            }
+        }
+        return true;
+    }
 }
 
 abstract public class RangedGroundBasicAttackState : GroundBasicAttackState
 {
+    protected GameObject projectile;
 
+    public override void start(Soul soul, InputManager input)
+    {
+        base.start(soul, input);
+    }
+    public override void fixedUpdate(Soul soul, InputManager input)
+    {
+        if (time >= (attackDelay[soul.AttackCount] * 0.5f) && !isAttack)
+        {
+            isAttack = createProjectile(soul);
+        }
+    }
+
+    private bool createProjectile(Soul soul)
+    {
+        GameObject obj = Object.Instantiate(projectile, soul.mTransform.position + new Vector3(soul.MoveData.lookAt * soul.Collider.bounds.size.x, soul.Collider.offset.y, 0.0f), Quaternion.identity);
+        obj.GetComponent<Projectile>().Initailize(soul.MoveData.lookAt, 5.0f, soul.Data.damage);
+        return true;
+    }
 }
 
 abstract public class MeleeAirBasicAttackState : AirBasicAttackState
@@ -339,10 +431,86 @@ abstract public class MeleeAirBasicAttackState : AirBasicAttackState
 
 abstract public class RangedAirBasicAttackState : AirBasicAttackState
 {
+    protected GameObject projectile;
+    public override void start(Soul soul, InputManager input)
+    {
+        base.start(soul, input);
+    }
 
+    public override void fixedUpdate(Soul soul, InputManager input)
+    {
+        if (time >= (delay * 0.5f) && !isAttack)
+        {
+            isAttack = createProjectile(soul);
+        }
+    }
+
+    private bool createProjectile(Soul soul)
+    {
+        GameObject obj = Object.Instantiate(projectile, soul.mTransform.position + new Vector3(soul.MoveData.lookAt * soul.Collider.bounds.size.x, soul.Collider.offset.y, 0.0f), Quaternion.identity);
+        obj.GetComponent<Projectile>().Initailize(soul.MoveData.lookAt, 5.0f, soul.Data.damage);
+        return true;
+    }
 }
 
+public class SkillAdapterState : SoulState
+{
+    Skill skill;
+    public override void start(Soul soul, InputManager input)
+    {
+        skill = soul.Skills[input.isSkillKeyDown.Item2];
+        skill.start();
+    }
 
+    public override SoulState handleInput(Soul soul, InputManager input)
+    {
+        if (skill.end())
+        {
+            if (soul.IsOnGround)
+                innerState = State.IDLE;
+            else
+                innerState = State.FALL;
+        }
+        return soul.StateChanger(innerState);
+    }
 
+    public override void update(Soul soul, InputManager input)
+    {
+        skill.update();
+    }
+    public override void fixedUpdate(Soul soul, InputManager input)
+    {
+        skill.fixedUpdate();
+    }
+    public override void end(Soul soul, InputManager input)
+    {
+        input.isSkillKeyDown = (false, KeyCode.None);
+    }
+}
 
+public class HitState : SoulState
+{
+    float time;
+    public override void start(Soul soul, InputManager input)
+    {
+        Debug.Log("HitState");
+        soul.Anime.Play("HIT");
+        time = 0.0f;
+    }
+    public override SoulState handleInput(Soul soul, InputManager input)
+    {
+        if (time >= 0.2f)
+        {
+            if (soul.IsOnGround)
+                innerState = State.IDLE;
+            else
+                innerState = State.FALL;
+        }
+        return soul.StateChanger(innerState);
+    }
 
+    public override void update(Soul soul, InputManager input)
+    {
+        time += Time.deltaTime;
+    }
+}

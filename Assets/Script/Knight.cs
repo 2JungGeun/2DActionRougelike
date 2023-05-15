@@ -10,6 +10,7 @@ public class Knight : Soul
 
     public Knight(string name) : base(name)
     {
+        skills.Add(KeyCode.S, new KnightSkill(this));
         state = new KnightIdleState();
     }
 
@@ -24,6 +25,10 @@ public class Knight : Soul
 
     override public void Update(InputManager input)
     {
+        foreach (KeyValuePair<KeyCode, Skill> skill in Skills)
+        {
+            skill.Value.ColldownUpdate();
+        }
         moveData.lookAt = (sprite.flipX) ? -1 : 1;
         state.update(this, input);
         if (!attacking)
@@ -78,8 +83,10 @@ public class Knight : Soul
                 return new KnightDashState();
             case State.BASEATTACK:
                 return new KnightGroundBasicAttackState();
+            case State.AIRATTACK:
+                return new KnightAirBasicAttackState();
             case State.SKILL:
-                return null;
+                return new SkillAdapterState();
             default:
                 return null;
         }

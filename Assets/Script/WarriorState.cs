@@ -2,51 +2,33 @@ using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
 
-public class WarriorIdleState : IdleState
+public class WarriorIdleState : IdleState { }
+
+public class WarriorWalkState : WalkState { }
+
+public class WarriorJumpState : JumpState { }
+
+public class WarriorFallState : FallState { }
+
+public class WarriorDashState : DashState { }
+
+public class WarriorGroundBasicAttackState : RangedGroundBasicAttackState 
 {
-    public override SoulState stateChanger(Soul soul)
+    public override void start(Soul soul, InputManager input)
     {
-        return soul.StateChanger(innerState);
+        base.start(soul, input);
+        projectile = Resources.Load<GameObject>("Prefab/fireBall");
+        Debug.Log(projectile.name);
     }
 }
 
-public class WarriorWalkState : WalkState
+public class WarriorAirBasicAttackState : RangedAirBasicAttackState
 {
-    public override SoulState stateChanger(Soul soul)
+    public override void start(Soul soul, InputManager input)
     {
-        return soul.StateChanger(innerState);
-    }
-}
-
-public class WarriorJumpState : JumpState
-{
-    public override SoulState stateChanger(Soul soul)
-    {
-        return soul.StateChanger(innerState);
-    }
-}
-
-public class WarriorFallState : FallState
-{
-    public override SoulState stateChanger(Soul soul)
-    {
-        return soul.StateChanger(innerState);
-    }
-}
-
-public class WarriorDashState : DashState
-{
-    public override SoulState stateChanger(Soul soul)
-    {
-        return soul.StateChanger(innerState);
-    }
-}
-
-public class WarriorGroundBasicAttackState : GroundBasicAttackState
-{
-    public override SoulState stateChanger(Soul soul)
-    {
-        return soul.StateChanger(innerState);
+        base.start(soul, input);
+        projectile = Resources.Load<GameObject>("Prefab/fireBall");
+        Debug.Log(projectile.name);
     }
 }
 

@@ -74,8 +74,10 @@ public class Warrior : Soul
                 return new WarriorDashState();
             case State.BASEATTACK:
                 return new WarriorGroundBasicAttackState();
+            case State.AIRATTACK:
+                return new WarriorAirBasicAttackState();
             case State.SKILL:
-                return null;
+                return new SkillAdapterState();
             default:
                 return null;
         }

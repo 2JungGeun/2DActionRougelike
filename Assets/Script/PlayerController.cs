@@ -10,6 +10,7 @@ public class InputManager
     public bool isDownJumpKeyDown;
     public bool isDashKeyDown;
     public bool isAttackKeyDown;
+    public (bool, KeyCode) isSkillKeyDown;
     public InputManager()
     {
         moveDir = 0.0f;
@@ -17,6 +18,7 @@ public class InputManager
         isDownJumpKeyDown = false;
         isDashKeyDown = false;
         isAttackKeyDown = false;
+        isSkillKeyDown = (false, KeyCode.None);
     }
 }
 
@@ -25,7 +27,7 @@ public class PlayerController : MonoBehaviour
 {
     //Input관련 변수
     private InputManager input = new InputManager();
-
+    private List<KeyCode> skillKeyList = new List<KeyCode>();
 
     //soul
     private int currIndex = 0;
@@ -35,6 +37,8 @@ public class PlayerController : MonoBehaviour
     // Start is called before the first frame update
     void Start()
     {
+        skillKeyList.Add(KeyCode.S);
+        skillKeyList.Add(KeyCode.A);
         ownSouls = new List<Soul>();
         //base 캐릭터 초기화
         InitializeSoul();
@@ -63,15 +67,28 @@ public class PlayerController : MonoBehaviour
         {
             input.isDashKeyDown = true;
         }
-        else if (Input.GetKeyDown(KeyCode.Z))
+        else if (Input.GetKey(KeyCode.Z))
         {
             input.isAttackKeyDown = true;
         }
         else if (Input.GetKeyDown(KeyCode.LeftShift))
         {
             bool result = SwapSoul();
-            if(result)
+            if (result)
                 currSoul.Start(input);
+        }
+        if (!input.isSkillKeyDown.Item1)
+        {
+            if (Input.GetKeyDown(KeyCode.S))
+            {
+                if (currSoul.Skills.ContainsKey(KeyCode.S) && currSoul.Skills[KeyCode.S].CanUseSkill())
+                    input.isSkillKeyDown = (true, KeyCode.S);
+            }
+            else if (Input.GetKeyDown(KeyCode.A))
+            {
+                if (currSoul.Skills.ContainsKey(KeyCode.A) && currSoul.Skills[KeyCode.A].CanUseSkill())
+                    input.isSkillKeyDown = (true, KeyCode.A);
+            }
         }
         currSoul.HandleInput(input);
         currSoul.Update(input);
@@ -148,8 +165,13 @@ public class PlayerController : MonoBehaviour
         return nameList;
     }
 
+    public void Hit()
+    {
+        currSoul.Hit(input);
+    }
+
     private void OnDrawGizmos()
     {
-        //Gizmos.DrawWireCube(currSoul.mTransform.position + new Vector3(currSoul.MoveData.lookAt * 1.0f, 0.75f, 0), new Vector3(1.8f, 1.4f, 0.0f));
+        //Gizmos.DrawWireCube(new Vector2(offsetX, offsetY), new Vector2(offsetX * 2, offsetY * 2));
     }
 }
